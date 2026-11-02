@@ -66,9 +66,9 @@ class StoreTools:
         return [self._product_view(q) for q in candidates[:limit]]
 
     def _verified_order(self, order_id: int, email_or_phone: str) -> Order | None:
-        customer = self.store.find_customer(email_or_phone)
+        customer_ids = {c.id for c in self.store.find_customers(email_or_phone)}
         order = self.store.orders.get(int(order_id)) if str(order_id).strip().isdigit() else None
-        if not customer or not order or order.customer_id != customer.id:
+        if not order or order.customer_id not in customer_ids:
             return None
         return order
 
@@ -212,15 +212,20 @@ class StoreTools:
         }
 
     def lookup_orders(self, email_or_phone: str, order_id: int | None = None) -> dict:
-        customer = self.store.find_customer(email_or_phone)
-        if not customer:
+        customers = self.store.find_customers(email_or_phone)
+        if not customers:
             return {"encontrado": False, "observacao": GENERIC_NOT_FOUND}
         if order_id is not None:
             order = self._verified_order(order_id, email_or_phone)
             if not order:
                 return {"encontrado": False, "observacao": GENERIC_NOT_FOUND}
             return {"encontrado": True, "pedidos": [self._order_view(order)]}
-        orders = sorted((o for o in self.store.orders.values() if o.customer_id == customer.id), key=lambda o: o.order_date, reverse=True)
+        if len(customers) > 1:  # shared identifier: listing would mix different people's orders
+            return {
+                "encontrado": False,
+                "observacao": "Este contato não identifica um único cliente. Peça o número do pedido (ou o telefone) para continuar.",
+            }
+        orders = sorted((o for o in self.store.orders.values() if o.customer_id == customers[0].id), key=lambda o: o.order_date, reverse=True)
         if not orders:
             return {"encontrado": False, "observacao": "Cliente identificado, mas sem pedidos registrados."}
         return {"encontrado": True, "pedidos": [self._order_view(o) for o in orders]}

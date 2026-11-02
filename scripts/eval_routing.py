@@ -40,7 +40,7 @@ CASES = [
     ("Qual a garantia dos instrumentos?", {"get_store_policy"}, DATA, ["90"]),
     ("Como peço para apagarem meus dados?", {"get_store_policy"}, DATA, ["WhatsApp", "e-mail"]),
     ("Qual o status do meu pedido?", set(), DATA, ["e-mail", "telefone"]),  # must ask for identification first
-    ("Pedido 10, email bruno.martins@jmail.com. Já foi enviado?", {"lookup_orders"}, set(), ["não encontr", "conferir", "confirm"]),
+    ("Pedido 10, email bruno.martins@jmail.com. Já foi enviado?", {"lookup_orders"}, set(), ["separa", "confirmado", "ainda não"]),
     ("Vocês vendem palheta?", set(), {"lookup_orders", "check_return_eligibility"}, ["instrumento"]),
     ("Me recomenda uma série boa na Netflix?", set(), DATA | {"get_store_policy"}, ["Empório", "instrument"]),
 ]

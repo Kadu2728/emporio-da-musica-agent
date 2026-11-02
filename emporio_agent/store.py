@@ -209,17 +209,17 @@ class StoreData:
                 return cat
         return None
 
-    def find_customer(self, email_or_phone: str) -> Customer | None:
-        """Identity check used before revealing any order data (LGPD, policy section 9)."""
+    def find_customers(self, email_or_phone: str) -> list[Customer]:
+        """Identity check used before revealing any order data (LGPD, policy section 9).
+
+        Returns a list because identifiers are not unique in the data (customers 11 and 43 share
+        the same e-mail), so callers must never assume one identifier == one person.
+        """
         value = (email_or_phone or "").strip().lower()
         if "@" in value:
-            return next((c for c in self.customers.values() if c.email == value), None)
+            return [c for c in self.customers.values() if c.email == value]
         wanted = digits(value)
         if len(wanted) < 8:  # too short to identify someone safely
-            return None
-        for c in self.customers.values():
-            phone = digits(c.phone)
-            # accept "(67) 99812-3456", "67998123456", "+55 67 99812 3456", "99812-3456"
-            if phone.endswith(wanted[-11:]) or wanted.endswith(phone):
-                return c
-        return None
+            return []
+        # accept "(67) 99812-3456", "67998123456", "+55 67 99812 3456", "99812-3456"
+        return [c for c in self.customers.values() if digits(c.phone).endswith(wanted[-11:]) or wanted.endswith(digits(c.phone))]

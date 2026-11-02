@@ -67,6 +67,12 @@ def test_order_lookup_requires_matching_identity(tools):
     assert not other_customer["encontrado"]
 
 
+def test_shared_email_never_lists_another_customers_orders(tools):
+    # customers 11 and 43 share bruno.martins@jmail.com in the raw data
+    assert not tools.lookup_orders("bruno.martins@jmail.com")["encontrado"]
+    assert tools.lookup_orders("bruno.martins@jmail.com", order_id=10)["encontrado"]  # order 10 belongs to customer 11
+
+
 def test_phone_formats_are_normalised(tools):
     for phone in ("67998123456", "+55 67 99812-3456", "99812-3456"):
         assert tools.lookup_orders(phone)["encontrado"]
