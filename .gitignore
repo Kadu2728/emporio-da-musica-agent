@@ -10,3 +10,6 @@ dist/
 
 # runtime state (conversation history, support tickets)
 var/
+
+# hiring-form PDF (not part of the case deliverables)
+submission/
