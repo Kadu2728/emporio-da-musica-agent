@@ -7,9 +7,9 @@ to read the policy manual**, and politely handles out-of-scope requests.
 
 ```
 Cliente: Quanto custa o Takamine GD20? Se eu pagar no PIX tem desconto?
-  [tool] get_product_details({"product": "Takamine GD20"})
-  [tool] get_store_policy({"topics": ["pagamento"]})
-Tom:     O Takamine GD20 Dreadnought tá saindo por R$ 2.199,00 ... no PIX fica R$ 2.089,05 (5% off) ...
+  [tool] get_product_details  -> R$ 2.199,00 · PIX R$ 2.089,05 · até 12x de R$ 183,25 · em estoque
+  [tool] get_store_policy     -> section 3 (payment)
+Tom:     (answers in Portuguese using only those facts — see conversations/)
 ```
 
 - **Stack:** Python 3.10+, function calling (no agent framework), Google Gemini (free tier) or any
