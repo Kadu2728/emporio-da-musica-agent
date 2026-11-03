@@ -61,7 +61,7 @@ class GeminiLLM:
         from google.genai import types
 
         self._types = types
-        self.model = model or os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+        self.model = model or os.getenv("GEMINI_MODEL", "gemini-3.5-flash")
         self.name = f"gemini:{self.model}"
         self.client = genai.Client(api_key=api_key or os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY"))
         self.temperature = temperature

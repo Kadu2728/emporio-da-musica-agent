@@ -47,7 +47,7 @@ Everything model-specific lives in [`emporio_agent/llm.py`](emporio_agent/llm.py
 
 | Provider | `.env` |
 |---|---|
-| Gemini (default) | `LLM_PROVIDER=gemini`, `GEMINI_API_KEY=...`, optional `GEMINI_MODEL=gemini-2.5-flash` |
+| Gemini (default) | `LLM_PROVIDER=gemini`, `GEMINI_API_KEY=...`, optional `GEMINI_MODEL=gemini-3.5-flash` |
 | OpenAI | `LLM_PROVIDER=openai`, `OPENAI_API_KEY=...`, `OPENAI_MODEL=gpt-4o-mini` |
 | Groq (free tier) | `LLM_PROVIDER=openai`, `OPENAI_BASE_URL=https://api.groq.com/openai/v1`, `OPENAI_API_KEY=...`, `OPENAI_MODEL=llama-3.3-70b-versatile` |
 | Local Ollama | `LLM_PROVIDER=openai`, `OPENAI_BASE_URL=http://localhost:11434/v1`, `OPENAI_MODEL=qwen2.5:7b` |
@@ -129,7 +129,7 @@ adding capability, while the hand-written loop is fully visible and easy to test
 
 **Principle used throughout: facts and rules live in code, language lives in the LLM.**
 
-### 3.2 Model and provider: Gemini 2.5 Flash (free tier), swappable
+### 3.2 Model and provider: Gemini Flash (free tier), swappable
 - Free tier with no credit card, so anyone evaluating this can run it.
 - Native, reliable function calling, including parallel calls; good Brazilian Portuguese; low latency
   (important for a chat channel); low cost if moved to the paid tier.
