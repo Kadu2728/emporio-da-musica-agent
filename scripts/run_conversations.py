@@ -113,12 +113,14 @@ def main() -> None:
         if selected and number not in selected:
             continue
         agent = Agent(llm, memory=ConversationStore(":memory:"))
-        turns = []
+        turns, models = [], []
         for text in scenario["turns"]:
             reply = agent.reply(scenario["slug"], text)
             turns.append((text, reply))
+            if llm.name not in models:
+                models.append(llm.name)
             print(f"[{scenario['slug']}] Cliente: {text}\n  tools: {[t.name for t in reply.trace]}\n  Tom: {reply.text}\n")
-        (out_dir / f"{scenario['slug']}.md").write_text(render(scenario, llm.name, turns), encoding="utf-8")
+        (out_dir / f"{scenario['slug']}.md").write_text(render(scenario, " → ".join(models), turns), encoding="utf-8")
 
 
 if __name__ == "__main__":

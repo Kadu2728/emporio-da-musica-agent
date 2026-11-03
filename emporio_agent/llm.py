@@ -49,22 +49,60 @@ def _retry(fn, attempts: int = 4):
             return fn()
         except Exception as exc:  # SDK-specific exception types differ; inspect the message
             msg = str(exc)
+            if _daily_quota_exhausted(exc):  # waiting won't help; let the caller fall back
+                raise
             transient = any(code in msg for code in ("429", "500", "503", "RESOURCE_EXHAUSTED", "UNAVAILABLE", "overloaded"))
             if not transient or i == attempts - 1:
                 raise
             time.sleep(min(2 ** i * 5, 40))
 
 
+def _daily_quota_exhausted(exc: Exception) -> bool:
+    msg = str(exc)
+    return "RESOURCE_EXHAUSTED" in msg and "PerDay" in msg
+
+
 class GeminiLLM:
+    """Gemini adapter with a model fallback chain.
+
+    The free tier caps requests *per model per day* (20 at the time of writing), so when the
+    primary model's daily quota is exhausted the adapter moves on to the next model in
+    GEMINI_FALLBACK_MODELS instead of failing the conversation.
+    """
+
+    # Gemini docs: dummy signature accepted when replaying function calls produced by another model
+    FOREIGN_SIGNATURE = b"skip_thought_signature_validator"
+
     def __init__(self, model: str | None = None, api_key: str | None = None, temperature: float = 0.3):
         from google import genai
         from google.genai import types
 
         self._types = types
-        self.model = model or os.getenv("GEMINI_MODEL", "gemini-3.5-flash")
-        self.name = f"gemini:{self.model}"
+        primary = model or os.getenv("GEMINI_MODEL", "gemini-3.5-flash")
+        fallbacks = os.getenv("GEMINI_FALLBACK_MODELS", "gemini-3-flash-preview,gemini-3.5-flash-lite,gemini-3.1-flash-lite,gemini-2.5-flash-lite")
+        self.models = [primary] + [m.strip() for m in fallbacks.split(",") if m.strip() and m.strip() != primary]
         self.client = genai.Client(api_key=api_key or os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY"))
         self.temperature = temperature
+
+    @property
+    def model(self) -> str:
+        return self.models[0]
+
+    @property
+    def name(self) -> str:
+        return f"gemini:{self.model}"
+
+    def _replay(self, raw: tuple[str, object]):
+        """Assistant turn from earlier in this turn; re-sign it if it came from another model."""
+        model, content = raw
+        if model == self.model or content is None:
+            return content
+        t = self._types
+        parts = [
+            t.Part(function_call=p.function_call, thought_signature=self.FOREIGN_SIGNATURE) if p.function_call else p
+            for p in (content.parts or []) if not p.thought
+        ]
+        return t.Content(role="model", parts=parts)
 
     def _contents(self, messages: list[dict]) -> list:
         t = self._types
@@ -74,7 +112,7 @@ class GeminiLLM:
                 contents.append(t.Content(role="user", parts=[t.Part.from_text(text=m["content"])]))
             elif m["role"] == "assistant":
                 if m.get("raw") is not None:  # keeps Gemini "thought signatures" intact
-                    contents.append(m["raw"])
+                    contents.append(self._replay(m["raw"]))
                 else:
                     contents.append(t.Content(role="model", parts=[t.Part.from_text(text=m["content"] or "")]))
             elif m["role"] == "tool":
@@ -96,7 +134,14 @@ class GeminiLLM:
             ])],
             automatic_function_calling=t.AutomaticFunctionCallingConfig(disable=True),
         )
-        resp = _retry(lambda: self.client.models.generate_content(model=self.model, contents=self._contents(messages), config=config))
+        while True:
+            try:
+                resp = _retry(lambda: self.client.models.generate_content(model=self.model, contents=self._contents(messages), config=config))
+                break
+            except Exception as exc:
+                if not _daily_quota_exhausted(exc) or len(self.models) == 1:
+                    raise
+                self.models.pop(0)  # this model is done for today; continue with the next one
         candidate = resp.candidates[0] if resp.candidates else None
         content = candidate.content if candidate else None
         calls, texts = [], []
@@ -106,7 +151,7 @@ class GeminiLLM:
                 calls.append(ToolCall(id=fc.id or uuid.uuid4().hex[:8], name=fc.name, arguments=dict(fc.args or {})))
             elif part.text and not part.thought:
                 texts.append(part.text)
-        return LLMResponse(text="".join(texts).strip() or None, tool_calls=calls, raw=content)
+        return LLMResponse(text="".join(texts).strip() or None, tool_calls=calls, raw=(self.model, content))
 
 
 class OpenAICompatibleLLM:
