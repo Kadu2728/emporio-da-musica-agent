@@ -18,7 +18,7 @@ Tom:     Boa escolha! O Takamine GD20 Dreadnought Natural está saindo por R$ 2.
 - **Stack:** Python 3.10+, function calling (no agent framework), Google Gemini (free tier) or any
   OpenAI-compatible API, SQLite for conversation memory, `pytest`.
 - **Example conversations:** [`conversations/`](conversations/) (5 real, unedited transcripts, see section 9).
-- **Routing eval:** [`evals/routing_results.md`](evals/routing_results.md).
+- **Routing eval:** [`evals/routing_results.md`](evals/routing_results.md): **15/15** (gemini-3.5-flash-lite).
 
 ---
 
@@ -212,6 +212,8 @@ being trusted from an old transcript. The window is the last 20 messages, to bou
   parsing/errata, and the agent loop (tool round trip, history, runaway-loop and LLM-error fallbacks) with a scripted fake LLM.
 - **Routing eval** (`scripts/eval_routing.py`): 15 single-turn cases checking that the agent consults the
   right source (data / policy / nothing), avoids forbidden tools, and that the answer contains the expected fact.
+  Result: **15/15** on `gemini-3.5-flash-lite` ([results](evals/routing_results.md)). It is small, so it is a smoke
+  test for routing regressions, not a measure of quality.
 - **Transcript review -> prompt iteration.** I read every generated conversation and fixed what was wrong before
   committing them. The first run showed the agent:
   1. suggesting a clip-on tuner (an accessory the store does not sell);
@@ -312,7 +314,9 @@ tests/                offline test suite
 
 ## 9. Example conversations
 Real, unedited outputs of `scripts/run_conversations.py` (simulated time: Tuesday 2026-03-24 10:30). Each file
-shows the tool calls made on every turn.
+shows the tool calls made on every turn and the model that produced it. Conversations 3 and 4 were regenerated after
+the last prompt revision (ticket consent, no guessed names); 1, 2 and 5 come from the previous run, as those rules
+do not apply to them.
 
 | # | Scenario | What it demonstrates |
 |---|---|---|
